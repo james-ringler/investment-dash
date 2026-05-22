@@ -302,12 +302,17 @@ let allH = [];
 async function loadHoldings() {
   const data = await fetch('/api/holdings').then(r => r.json());
   allH = data;
-  const sorted = [...data].sort((a, b) => b.market_value - a.market_value);
-  const tv = data.reduce((s, h) => s + (h.market_value || 0), 0);
-  const tc = data.reduce((s, h) => s + (h.cost || 0), 0);
+
+  const investments = data.filter(h => h.type !== 'cash');
+  const cash       = data.filter(h => h.type === 'cash');
+  const sorted     = [...investments].sort((a, b) => b.market_value - a.market_value);
+
+  // Summary uses investments only (no cash)
+  const tv = investments.reduce((s, h) => s + (h.market_value || 0), 0);
+  const tc = investments.reduce((s, h) => s + (h.cost || 0), 0);
   const tg = tv - tc;
   const tgp = tc ? tg / tc * 100 : 0;
-  const td = data.reduce((s, h) => s + (h.today_change || 0), 0);
+  const td = investments.reduce((s, h) => s + (h.today_change || 0), 0);
 
   $('s-val').textContent = money(tv);
   $('s-cost').textContent = 'Cost: ' + money(tc);
@@ -315,17 +320,16 @@ async function loadHoldings() {
   const gpe = $('s-gainp'); gpe.textContent = pct(tgp); gpe.className = 'card-sub ' + cc(tg);
   const te = $('s-today'); te.textContent = sign(td) + money(td); te.className = 'card-val ' + cc(td);
   const tpe = $('s-todayp'); tpe.textContent = pct(td / (tv - td) * 100 || 0); tpe.className = 'card-sub ' + cc(td);
-  $('s-count').textContent = data.length;
-  $('s-types').textContent = data.filter(h=>h.type==='equity').length + ' equities · '
-    + data.filter(h=>h.type==='etf').length + ' ETFs · '
-    + data.filter(h=>h.type==='mutual_fund').length + ' funds';
+  $('s-count').textContent = investments.length;
+  $('s-types').textContent = investments.filter(h=>h.type==='equity').length + ' equities · '
+    + investments.filter(h=>h.type==='etf').length + ' ETFs · '
+    + investments.filter(h=>h.type==='mutual_fund').length + ' funds';
   $('h-as-of').textContent = 'As of ' + new Date().toLocaleString();
   $('last-upd').textContent = 'Updated ' + new Date().toLocaleTimeString();
 
-  $('h-body').innerHTML = sorted.map(h => {
+  function holdingRow(h, totalVal) {
     const ap = h.shares > 0 ? h.cost / h.shares : 0;
-    const alloc = tv > 0 ? h.market_value / tv * 100 : 0;
-    const barW = Math.min(100, alloc) + '%';
+    const alloc = totalVal > 0 ? h.market_value / totalVal * 100 : 0;
     const sharesStr = h.shares % 1 === 0 ? h.shares.toFixed(0) : h.shares.toFixed(3);
     return `<tr>
       <td><span style="font-weight:600;color:#f8fafc">${h.name}</span></td>
@@ -335,15 +339,23 @@ async function loadHoldings() {
       <td class="tr muted">${ap ? money(ap) : '–'}</td>
       <td class="tr">${h.price ? money(h.price) : '–'}</td>
       <td class="tr" style="font-weight:600">${money(h.market_value)}</td>
-      <td class="tr ${cc(h.gain)}" style="font-weight:600">${sign(h.gain)}${money(h.gain)}</td>
-      <td class="tr ${cc(h.gain_pct)}">${pct(h.gain_pct)}</td>
+      <td class="tr ${cc(h.gain)}" style="font-weight:600">${h.type !== 'cash' ? sign(h.gain)+money(h.gain) : '–'}</td>
+      <td class="tr ${cc(h.gain_pct)}">${h.type !== 'cash' ? pct(h.gain_pct) : '–'}</td>
       <td class="tr ${h.today_change_pct ? cc(h.today_change_pct) : 'muted'}">${h.today_change_pct ? pct(h.today_change_pct) : '–'}</td>
       <td class="tr">
         <span style="color:#9ca3af;margin-right:6px">${num(alloc,1)}%</span>
-        <span class="bar-bg"><span class="bar-fg" style="width:${barW}"></span></span>
+        <span class="bar-bg"><span class="bar-fg" style="width:${Math.min(100,alloc)}%"></span></span>
       </td>
     </tr>`;
-  }).join('');
+  }
+
+  const cashTotal = cash.reduce((s, h) => s + h.market_value, 0);
+  const cashRows = cash.length ? `
+    <tr><td colspan="11" style="padding:8px 12px 4px;font-size:10px;font-weight:700;color:#4b5563;text-transform:uppercase;letter-spacing:.6px;border-bottom:1px solid #1f2235">Cash &amp; Equivalents</td></tr>
+    ${cash.map(h => holdingRow(h, cashTotal)).join('')}
+  ` : '';
+
+  $('h-body').innerHTML = sorted.map(h => holdingRow(h, tv)).join('') + cashRows;
 }
 
 // ── Chart ─────────────────────────────────────────────────────────────────
