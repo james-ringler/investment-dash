@@ -1,6 +1,7 @@
 import os
 import time
 from datetime import datetime, timedelta
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from flask import Flask, render_template, jsonify, request
 import yfinance as yf
 import pandas as pd
@@ -87,32 +88,35 @@ def _parse_news(item, symbol):
 def index():
     return render_template("index.html")
 
+def _fetch_one_holding(h):
+    if h["type"] == "cash":
+        return {**h, "price": 1.0, "market_value": h["cost"],
+                "gain": 0, "gain_pct": 0, "today_change": 0, "today_change_pct": 0}
+    try:
+        t = yf.Ticker(h["symbol"])
+        info = t.info
+        price = _safe_price(t, info)
+        mv = price * h["shares"]
+        gain = mv - h["cost"]
+        gain_pct = (gain / h["cost"] * 100) if h["cost"] else 0
+        chg = info.get("regularMarketChange", 0) or 0
+        chg_pct = info.get("regularMarketChangePercent", 0) or 0
+        return {**h, "price": round(price, 4), "market_value": round(mv, 2),
+                "gain": round(gain, 2), "gain_pct": round(gain_pct, 2),
+                "today_change": round(chg * h["shares"], 2),
+                "today_change_pct": round(chg_pct, 2)}
+    except Exception as e:
+        return {**h, "price": 0, "market_value": 0, "gain": -h["cost"],
+                "gain_pct": -100, "today_change": 0, "today_change_pct": 0, "error": str(e)}
+
 @app.route("/api/holdings")
 def api_holdings():
     def fetch():
-        results = []
-        for h in HOLDINGS:
-            if h["type"] == "cash":
-                results.append({**h, "price": 1.0, "market_value": h["cost"],
-                                 "gain": 0, "gain_pct": 0, "today_change": 0, "today_change_pct": 0})
-                continue
-            try:
-                t = yf.Ticker(h["symbol"])
-                info = t.info
-                price = _safe_price(t, info)
-                mv = price * h["shares"]
-                gain = mv - h["cost"]
-                gain_pct = (gain / h["cost"] * 100) if h["cost"] else 0
-                chg = info.get("regularMarketChange", 0) or 0
-                chg_pct = info.get("regularMarketChangePercent", 0) or 0
-                results.append({**h, "price": round(price, 4), "market_value": round(mv, 2),
-                                 "gain": round(gain, 2), "gain_pct": round(gain_pct, 2),
-                                 "today_change": round(chg * h["shares"], 2),
-                                 "today_change_pct": round(chg_pct, 2)})
-            except Exception as e:
-                results.append({**h, "price": 0, "market_value": 0, "gain": -h["cost"],
-                                 "gain_pct": -100, "today_change": 0, "today_change_pct": 0,
-                                 "error": str(e)})
+        results = [None] * len(HOLDINGS)
+        with ThreadPoolExecutor(max_workers=8) as ex:
+            futures = {ex.submit(_fetch_one_holding, h): i for i, h in enumerate(HOLDINGS)}
+            for f in as_completed(futures):
+                results[futures[f]] = f.result()
         return results
     return jsonify(_get("holdings", fetch, ttl=90))
 
@@ -128,18 +132,26 @@ def api_chart():
         start = datetime.now() - timedelta(days=days)
         result = {}
 
-        port_series = {}
         shares_map = {h["symbol"]: h["shares"] for h in HOLDINGS if h["symbol"] in CHART_SYMBOLS}
-        for sym, shares in shares_map.items():
+        all_syms = list(shares_map.keys()) + compare
+
+        def _fetch_hist(sym):
             try:
                 hist = yf.Ticker(sym).history(start=start, interval=interval)
                 if not hist.empty:
-                    s = hist["Close"] * shares
-                    s.index = s.index.tz_localize(None) if s.index.tz else s.index
-                    port_series[sym] = s
+                    hist.index = hist.index.tz_localize(None) if hist.index.tz else hist.index
+                    return sym, hist["Close"]
             except Exception:
                 pass
+            return sym, None
 
+        raw = {}
+        with ThreadPoolExecutor(max_workers=10) as ex:
+            for sym, series in ex.map(_fetch_hist, all_syms):
+                if series is not None:
+                    raw[sym] = series
+
+        port_series = {sym: raw[sym] * shares for sym, shares in shares_map.items() if sym in raw}
         if port_series:
             port_df = pd.DataFrame(port_series).ffill()
             port_total = port_df.sum(axis=1).dropna()
@@ -153,24 +165,19 @@ def api_chart():
 
         cidx = 0
         for sym in compare:
-            try:
-                hist = yf.Ticker(sym).history(start=start, interval=interval)
-                if hist.empty:
-                    continue
-                s = hist["Close"]
-                s.index = s.index.tz_localize(None) if s.index.tz else s.index
-                first = s.iloc[0]
-                label = sym.replace("-USD", "").replace("^", "")
-                color = BENCH_COLORS.get(sym, EXTRA_COLORS[cidx % len(EXTRA_COLORS)])
-                if sym not in BENCH_COLORS:
-                    cidx += 1
-                result[label] = {
-                    "dates": s.index.strftime("%Y-%m-%d").tolist(),
-                    "values": (s / first * 100).round(2).tolist(),
-                    "color": color,
-                }
-            except Exception:
-                pass
+            if sym not in raw:
+                continue
+            s = raw[sym]
+            first = s.iloc[0]
+            label = sym.replace("-USD", "").replace("^", "")
+            color = BENCH_COLORS.get(sym, EXTRA_COLORS[cidx % len(EXTRA_COLORS)])
+            if sym not in BENCH_COLORS:
+                cidx += 1
+            result[label] = {
+                "dates": s.index.strftime("%Y-%m-%d").tolist(),
+                "values": (s / first * 100).round(2).tolist(),
+                "color": color,
+            }
 
         return result
 
@@ -178,27 +185,21 @@ def api_chart():
 
 @app.route("/api/eps")
 def api_eps():
-    def fetch():
-        results = []
-        for sym in EPS_SYMBOLS:
-            try:
-                info = yf.Ticker(sym).info
-                results.append({
-                    "symbol": sym,
-                    "name": info.get("shortName", sym),
+    def _fetch_eps(sym):
+        try:
+            info = yf.Ticker(sym).info
+            return {"symbol": sym, "name": info.get("shortName", sym),
                     "price": info.get("currentPrice") or info.get("regularMarketPrice"),
-                    "trailing_eps": info.get("trailingEps"),
-                    "forward_eps": info.get("forwardEps"),
-                    "trailing_pe": info.get("trailingPE"),
-                    "forward_pe": info.get("forwardPE"),
-                    "peg_ratio": info.get("pegRatio"),
-                    "revenue_growth": info.get("revenueGrowth"),
-                    "earnings_growth": info.get("earningsGrowth"),
-                    "next_earnings": info.get("mostRecentQuarter"),
-                })
-            except Exception:
-                results.append({"symbol": sym, "name": sym, "error": True})
-        return results
+                    "trailing_eps": info.get("trailingEps"), "forward_eps": info.get("forwardEps"),
+                    "trailing_pe": info.get("trailingPE"), "forward_pe": info.get("forwardPE"),
+                    "peg_ratio": info.get("pegRatio"), "revenue_growth": info.get("revenueGrowth"),
+                    "earnings_growth": info.get("earningsGrowth")}
+        except Exception:
+            return {"symbol": sym, "name": sym, "error": True}
+
+    def fetch():
+        with ThreadPoolExecutor(max_workers=6) as ex:
+            return list(ex.map(_fetch_eps, EPS_SYMBOLS))
     return jsonify(_get("eps", fetch, ttl=3600))
 
 @app.route("/api/news")
@@ -278,5 +279,5 @@ def api_quote(symbol):
     return jsonify(_get(f"quote:{sym}", fetch, ttl=60))
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))
+    port = int(os.environ.get("PORT", 5051))
     app.run(host="0.0.0.0", port=port, debug=os.environ.get("FLASK_ENV") != "production")
