@@ -8,28 +8,41 @@
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --bg:#0d1117;
-  --card:#161c2c;
-  --card2:#1c243a;
-  --border:rgba(255,255,255,.06);
+  --bg:#060c1a;
+  --card:rgba(14,20,38,0.55);
+  --card2:rgba(22,30,54,0.65);
+  --border:rgba(255,255,255,.09);
+  --border2:rgba(255,255,255,.05);
   --green:#22c55e;
   --green-dim:rgba(34,197,94,.15);
   --red:#f43f5e;
-  --red-dim:rgba(244,63,94,.12);
   --text:#e2e8f0;
   --sub:#64748b;
   --blue:#3b82f6;
+  --blur:blur(24px);
+  --shadow:0 8px 32px rgba(0,0,0,.45),0 1px 0 rgba(255,255,255,.04) inset;
 }
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.5;min-height:100vh}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.5;min-height:100vh;overflow-x:hidden}
+
+/* Background gradient blobs */
+body::before{
+  content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:
+    radial-gradient(ellipse 900px 700px at 15% 10%, rgba(59,130,246,.13) 0%, transparent 65%),
+    radial-gradient(ellipse 700px 900px at 85% 80%, rgba(139,92,246,.10) 0%, transparent 65%),
+    radial-gradient(ellipse 600px 500px at 55% 45%, rgba(34,197,94,.05) 0%, transparent 65%),
+    radial-gradient(ellipse 400px 400px at 80% 10%, rgba(249,115,22,.06) 0%, transparent 60%);
+}
+
 ::-webkit-scrollbar{width:4px;height:4px}
-::-webkit-scrollbar-track{background:var(--bg)}
-::-webkit-scrollbar-thumb{background:#2a3350;border-radius:2px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(255,255,255,.12);border-radius:2px}
 
 /* Layout */
-.wrap{max-width:1600px;margin:0 auto;padding:0 20px}
+.wrap{max-width:1600px;margin:0 auto;padding:0 20px;position:relative;z-index:1}
 
 /* Header */
-.hdr{padding:16px 0;border-bottom:1px solid var(--border);margin-bottom:24px}
+.hdr{padding:16px 0;border-bottom:1px solid var(--border2);margin-bottom:24px}
 .hdr-inner{display:flex;align-items:center;justify-content:space-between}
 .hdr-left{display:flex;align-items:center;gap:12px}
 .live{width:8px;height:8px;border-radius:50%;background:var(--green);animation:pulse 2s infinite;flex-shrink:0}
@@ -40,7 +53,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 
 /* Top grid */
 .top-grid{display:grid;grid-template-columns:1fr 2fr auto;gap:16px;margin-bottom:20px;align-items:stretch}
-.card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:22px}
+.card{background:var(--card);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);border:1px solid var(--border);border-radius:20px;padding:22px;box-shadow:var(--shadow)}
 
 /* Value card */
 .val-label{font-size:11px;color:var(--sub);font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px}
@@ -56,7 +69,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 
 /* Metric mini-cards */
 .metric-stack{display:flex;flex-direction:column;gap:12px;min-width:220px}
-.metric-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:18px 20px;flex:1}
+.metric-card{background:var(--card);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);border:1px solid var(--border);border-radius:20px;padding:18px 20px;flex:1;box-shadow:var(--shadow)}
 .metric-label{font-size:11px;color:var(--sub);font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
 .metric-val{font-size:26px;font-weight:700;color:#fff;letter-spacing:-.5px}
 .metric-unit{font-size:13px;font-weight:400;color:var(--sub);margin-left:4px}
@@ -65,22 +78,22 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 .metric-sub.r{color:var(--red)}
 
 /* Chart card */
-.chart-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:22px;display:flex;flex-direction:column}
+.chart-card{background:var(--card);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);border:1px solid var(--border);border-radius:20px;padding:22px;display:flex;flex-direction:column;box-shadow:var(--shadow)}
 .chart-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px}
 .chart-title{font-size:14px;font-weight:700;color:#fff}
 
 /* Period pills */
-.pills{display:flex;gap:4px;background:var(--card2);border-radius:20px;padding:3px}
+.pills{display:flex;gap:4px;background:rgba(255,255,255,.06);border-radius:20px;padding:3px;border:1px solid var(--border2)}
 .pill{padding:4px 12px;border-radius:16px;border:none;background:transparent;color:var(--sub);font-size:12px;font-weight:600;cursor:pointer;transition:all .15s}
 .pill:hover{color:var(--text)}
 .pill.act{background:#fff;color:#0d1117}
 .cmp-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px}
-.cmp-inp{background:var(--card2);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:5px 11px;font-size:12px;width:100px;outline:none}
+.cmp-inp{background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:5px 11px;font-size:12px;width:100px;outline:none}
 .cmp-inp:focus{border-color:var(--blue)}
 .add-btn{padding:5px 13px;border-radius:8px;border:none;background:var(--blue);color:#fff;font-size:12px;font-weight:600;cursor:pointer}
 .add-btn:hover{background:#2563eb}
 .ctags{display:flex;gap:5px;flex-wrap:wrap}
-.ctag{display:flex;align-items:center;gap:4px;padding:3px 9px;border-radius:12px;background:var(--card2);border:1px solid var(--border);font-size:11px;font-weight:600}
+.ctag{display:flex;align-items:center;gap:4px;padding:3px 9px;border-radius:12px;background:rgba(255,255,255,.06);border:1px solid var(--border);font-size:11px;font-weight:600}
 .ctag-dot{width:7px;height:7px;border-radius:50%}
 .ctag-rm{cursor:pointer;color:var(--sub);font-size:14px;line-height:1}
 .ctag-rm:hover{color:var(--red)}
@@ -90,18 +103,18 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 .mid-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px}
 
 /* Holdings list */
-.section-card{background:var(--card);border:1px solid var(--border);border-radius:16px;overflow:hidden}
+.section-card{background:var(--card);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);border:1px solid var(--border);border-radius:20px;overflow:hidden;box-shadow:var(--shadow)}
 .sc-header{display:flex;align-items:center;justify-content:space-between;padding:18px 20px 0}
 .sc-title{font-size:14px;font-weight:700;color:#fff}
 .tab-row{display:flex;gap:2px;padding:12px 20px 0}
 .tab{padding:5px 14px;border-radius:16px;border:none;background:transparent;color:var(--sub);font-size:12px;font-weight:600;cursor:pointer;transition:all .15s}
 .tab:hover{color:var(--text)}
-.tab.act{background:var(--card2);color:#fff}
+.tab.act{background:rgba(255,255,255,.10);color:#fff;border:1px solid var(--border)}
 .list-wrap{padding:8px 0}
 
 /* Holding row */
 .h-row{display:flex;align-items:center;gap:12px;padding:10px 20px;transition:background .12s}
-.h-row:hover{background:var(--card2)}
+.h-row:hover{background:rgba(255,255,255,.04)}
 .logo-wrap{position:relative;flex-shrink:0}
 .logo-circle{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#fff;letter-spacing:-.3px;overflow:hidden;flex-shrink:0}
 .logo-circle img{width:100%;height:100%;object-fit:contain;padding:6px}
@@ -119,7 +132,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 .rp-tabs{display:flex;gap:2px;padding:12px 20px 0;border-bottom:1px solid var(--border);margin-bottom:0}
 .rp-tab{padding:6px 14px;border-radius:8px 8px 0 0;border:none;background:transparent;color:var(--sub);font-size:12px;font-weight:600;cursor:pointer;transition:all .15s}
 .rp-tab:hover{color:var(--text)}
-.rp-tab.act{background:var(--card2);color:#fff}
+.rp-tab.act{background:rgba(255,255,255,.08);color:#fff}
 .rp-panel{display:none;padding:16px 20px}
 .rp-panel.show{display:block}
 
@@ -148,8 +161,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 .news-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
 .news-title-txt{font-size:14px;font-weight:700;color:#fff}
 .news-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
-.news-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px 16px;text-decoration:none;color:inherit;display:block;transition:border-color .15s,background .15s}
-.news-card:hover{border-color:var(--blue);background:var(--card2)}
+.news-card{background:var(--card);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);border:1px solid var(--border);border-radius:14px;padding:14px 16px;text-decoration:none;color:inherit;display:block;transition:border-color .15s,background .15s,box-shadow .15s;box-shadow:var(--shadow)}
+.news-card:hover{border-color:var(--blue);background:var(--card2);box-shadow:0 8px 32px rgba(59,130,246,.15),0 1px 0 rgba(255,255,255,.06) inset}
 .news-top{display:flex;align-items:center;gap:8px;margin-bottom:8px}
 .news-logo{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:800;color:#fff;flex-shrink:0}
 .news-sym{font-size:10px;font-weight:700;color:var(--blue);text-transform:uppercase;letter-spacing:.4px}
@@ -308,19 +321,23 @@ function tickerColor(sym){
   return PALETTE[h%PALETTE.length];
 }
 
-// Company logo: try to load from clearbit, fall back to colored circle
-const DOMAINS={AAPL:'apple.com',AMD:'amd.com',GOOGL:'google.com',GOOG:'google.com',
-  DKNG:'draftkings.com',HOOD:'robinhood.com',FJPCX:'fidelity.com',
-  DBB:'invesco.com',REMX:'vaneck.com'};
+// Company logo — populated from API responses, falls back to colored initials
+const logoMap = {};
+
+function onLogoErr(el, sym){
+  const color = tickerColor(sym);
+  el.parentNode.style.background = color;
+  el.parentNode.style.border = 'none';
+  el.parentNode.innerHTML = sym.slice(0,2);
+}
 
 function logoEl(sym, name){
-  const domain = DOMAINS[sym];
+  const url = logoMap[sym];
   const color = tickerColor(sym);
   const initials = sym.slice(0,2);
-  if(domain){
-    return `<div class="logo-circle" style="background:${color}20;border:1px solid ${color}30">
-      <img src="https://logo.clearbit.com/${domain}" alt="${sym}"
-        onerror="this.parentNode.style.background='${color}';this.style.display='none'" />
+  if(url){
+    return `<div class="logo-circle" style="background:${color}20;border:1px solid ${color}40">
+      <img src="${url}" alt="${sym}" onerror="onLogoErr(this,'${sym}')" />
     </div>`;
   }
   return `<div class="logo-circle" style="background:${color}">${initials}</div>`;
@@ -333,6 +350,7 @@ let hFilter = 'all';
 async function loadHoldings(){
   const data = await fetch('/api/holdings').then(r=>r.json());
   allH = data;
+  data.forEach(h=>{ if(h.logo_url) logoMap[h.symbol]=h.logo_url; });
 
   const investments = data.filter(h=>h.type!=='cash');
   const cash        = data.filter(h=>h.type==='cash');
@@ -498,6 +516,7 @@ document.querySelectorAll('.rp-tab').forEach(b=>b.addEventListener('click',()=>{
 // ── EPS ────────────────────────────────────────────────────────────────────
 async function loadEPS(){
   const data=await fetch('/api/eps').then(r=>r.json());
+  data.forEach(d=>{ if(d.logo_url) logoMap[d.symbol]=d.logo_url; });
   const fe=n=>n==null?'–':(n<0?`<span class="r">($${Math.abs(n).toFixed(2)})</span>`:`<span class="g">$${n.toFixed(2)}</span>`);
   const fp=n=>n==null?'–':n.toFixed(1)+'x';
   const fg=n=>n==null?'–':`<span class="${cc(n)}">${sign(n*100)}${(n*100).toFixed(1)}%</span>`;

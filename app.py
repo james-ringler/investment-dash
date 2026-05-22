@@ -9,6 +9,19 @@ import pandas as pd
 app = Flask(__name__)
 app.config["JSON_SORT_KEYS"] = False
 
+LOGO_DOMAINS = {
+    "AAPL": "apple.com", "AMD": "amd.com", "GOOGL": "alphabet.com",
+    "GOOG": "alphabet.com", "DKNG": "draftkings.com", "HOOD": "robinhood.com",
+    "FJPCX": "fidelity.com", "DBB": "invesco.com", "REMX": "vaneck.com",
+}
+
+def _logo_url(sym, info):
+    url = info.get("logo_url", "")
+    if url:
+        return url
+    domain = LOGO_DOMAINS.get(sym)
+    return f"https://logo.clearbit.com/{domain}" if domain else ""
+
 HOLDINGS = [
     {"symbol": "AAPL",  "name": "Apple Inc",                   "shares": 980,     "cost": 20800.38, "type": "equity"},
     {"symbol": "AMD",   "name": "Advanced Micro Devices",       "shares": 38,      "cost": 5946.14,  "type": "equity"},
@@ -104,7 +117,8 @@ def _fetch_one_holding(h):
         return {**h, "price": round(price, 4), "market_value": round(mv, 2),
                 "gain": round(gain, 2), "gain_pct": round(gain_pct, 2),
                 "today_change": round(chg * h["shares"], 2),
-                "today_change_pct": round(chg_pct, 2)}
+                "today_change_pct": round(chg_pct, 2),
+                "logo_url": _logo_url(h["symbol"], info)}
     except Exception as e:
         return {**h, "price": 0, "market_value": 0, "gain": -h["cost"],
                 "gain_pct": -100, "today_change": 0, "today_change_pct": 0, "error": str(e)}
@@ -189,6 +203,7 @@ def api_eps():
         try:
             info = yf.Ticker(sym).info
             return {"symbol": sym, "name": info.get("shortName", sym),
+                    "logo_url": _logo_url(sym, info),
                     "price": info.get("currentPrice") or info.get("regularMarketPrice"),
                     "trailing_eps": info.get("trailingEps"), "forward_eps": info.get("forwardEps"),
                     "trailing_pe": info.get("trailingPE"), "forward_pe": info.get("forwardPE"),
@@ -251,6 +266,7 @@ def api_research():
                 results.append({
                     "symbol": sym,
                     "name": info.get("shortName", sym),
+                    "logo_url": _logo_url(sym, info),
                     "price": price,
                     "target_mean": target,
                     "target_high": info.get("targetHighPrice"),
