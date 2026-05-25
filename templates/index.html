@@ -117,7 +117,8 @@ body::before{
 .h-row:hover{background:rgba(255,255,255,.04)}
 .logo-wrap{position:relative;flex-shrink:0}
 .logo-circle{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#fff;letter-spacing:-.3px;overflow:hidden;flex-shrink:0}
-.logo-circle img{width:100%;height:100%;object-fit:contain;padding:6px}
+.logo-circle img{width:70%;height:70%;object-fit:contain}
+.logo-circle.has-img{background:rgba(255,255,255,0.93)!important;border:1px solid rgba(255,255,255,.1)!important}
 .h-name{flex:1;min-width:0}
 .h-ticker{font-size:13px;font-weight:700;color:#fff}
 .h-company{font-size:11px;color:var(--sub);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:130px}
@@ -417,9 +418,11 @@ const logoMap = {};
 
 function onLogoErr(el, sym){
   const color = tickerColor(sym);
-  el.parentNode.style.background = color;
-  el.parentNode.style.border = 'none';
-  el.parentNode.innerHTML = sym.slice(0,2);
+  const p = el.parentNode;
+  p.classList.remove('has-img');
+  p.style.background = color;
+  p.style.border = 'none';
+  p.innerHTML = sym.slice(0,2);
 }
 
 function logoEl(sym, name){
@@ -427,7 +430,7 @@ function logoEl(sym, name){
   const color = tickerColor(sym);
   const initials = sym.slice(0,2);
   if(url){
-    return `<div class="logo-circle" style="background:${color}20;border:1px solid ${color}40">
+    return `<div class="logo-circle has-img">
       <img src="${url}" alt="${sym}" onerror="onLogoErr(this,'${sym}')" />
     </div>`;
   }

@@ -10,17 +10,19 @@ app = Flask(__name__)
 app.config["JSON_SORT_KEYS"] = False
 
 LOGO_DOMAINS = {
-    "AAPL": "apple.com", "AMD": "amd.com", "GOOGL": "alphabet.com",
-    "GOOG": "alphabet.com", "DKNG": "draftkings.com", "HOOD": "robinhood.com",
+    "AAPL": "apple.com", "AMD": "amd.com", "GOOGL": "google.com",
+    "GOOG": "google.com", "DKNG": "draftkings.com", "HOOD": "robinhood.com",
     "FJPCX": "fidelity.com", "DBB": "invesco.com", "REMX": "vaneck.com",
 }
 
+_STATIC_DIR = os.path.join(os.path.dirname(__file__), "static", "logos")
+
 def _logo_url(sym, info):
-    url = info.get("logo_url", "")
-    if url:
-        return url
+    for ext in ("svg", "png"):
+        if os.path.isfile(os.path.join(_STATIC_DIR, f"{sym}.{ext}")):
+            return f"/static/logos/{sym}.{ext}"
     domain = LOGO_DOMAINS.get(sym)
-    return f"https://logo.clearbit.com/{domain}" if domain else ""
+    return f"https://www.google.com/s2/favicons?domain={domain}&sz=256" if domain else ""
 
 HOLDINGS = [
     {"symbol": "AAPL",  "name": "Apple Inc",                   "shares": 980,     "cost": 20800.38, "type": "equity"},
