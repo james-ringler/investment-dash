@@ -169,9 +169,50 @@ body::before{
 .news-ttl{font-size:13px;font-weight:600;color:var(--text);line-height:1.4;margin-bottom:8px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .news-meta{font-size:11px;color:var(--sub)}
 
+/* Stats strip */
+.stat-strip{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+.stat-chip{background:var(--card);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);border:1px solid var(--border);border-radius:14px;padding:12px 18px;box-shadow:var(--shadow);min-width:140px}
+.stat-chip-label{font-size:10px;color:var(--sub);font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+.stat-chip-val{font-size:20px;font-weight:700;color:#fff;letter-spacing:-.3px}
+.stat-chip-sub{font-size:11px;color:var(--sub);margin-top:2px}
+.stat-chip-sub.g{color:var(--green)}
+.stat-chip-sub.r{color:var(--red)}
+
+/* Earnings calendar */
+.cal-section{margin-bottom:20px}
+.cal-label{font-size:14px;font-weight:700;color:#fff;margin-bottom:12px}
+.cal-strip{display:flex;gap:10px;overflow-x:auto;padding-bottom:6px;scrollbar-width:none}
+.cal-strip::-webkit-scrollbar{display:none}
+.cal-item{background:var(--card);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);border:1px solid var(--border);border-radius:14px;padding:12px 15px;flex-shrink:0;box-shadow:var(--shadow);min-width:110px;display:flex;flex-direction:column;gap:4px}
+.cal-sym{font-size:13px;font-weight:700;color:#fff}
+.cal-date{font-size:11px;color:var(--sub)}
+.cal-badge{display:inline-block;margin-top:4px;font-size:10px;font-weight:700;padding:2px 8px;border-radius:8px}
+.cal-badge.soon{background:rgba(249,115,22,.2);color:#f97316}
+.cal-badge.upcoming{background:rgba(59,130,246,.15);color:var(--blue)}
+.cal-badge.past{background:rgba(100,116,139,.12);color:var(--sub)}
+
+/* 52W gauge in holding rows */
+.week52-bar{width:46px;height:3px;background:rgba(255,255,255,.1);border-radius:2px;margin-top:5px;overflow:hidden}
+.week52-fill{height:100%;border-radius:2px;background:var(--blue)}
+
+/* Analytics grid */
+.analytics-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px}
+.donut-card{background:var(--card);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);border:1px solid var(--border);border-radius:20px;padding:22px;box-shadow:var(--shadow)}
+.donut-inner{display:flex;align-items:center;gap:20px}
+.donut-canvas-wrap{width:130px;height:130px;flex-shrink:0}
+.donut-legend{flex:1;display:flex;flex-direction:column;gap:5px;min-width:0}
+.legend-row{display:flex;align-items:center;gap:7px;font-size:12px}
+.legend-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.legend-lbl{flex:1;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.legend-pct{color:var(--sub);font-size:11px;font-weight:600}
+
+/* P/E comparison chart */
+.pe-chart-wrap{height:170px;margin-top:16px;position:relative}
+.pe-chart-title{font-size:11px;font-weight:600;color:var(--sub);text-transform:uppercase;letter-spacing:.5px;margin-top:16px;margin-bottom:4px}
+
 /* Responsive */
 @media(max-width:1200px){.top-grid{grid-template-columns:1fr 2fr;}.metric-stack{display:none}}
-@media(max-width:900px){.top-grid{grid-template-columns:1fr};.mid-grid{grid-template-columns:1fr}}
+@media(max-width:900px){.top-grid{grid-template-columns:1fr};.mid-grid{grid-template-columns:1fr};.analytics-grid{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -242,6 +283,38 @@ body::before{
   </div>
 </div>
 
+<!-- Stats strip -->
+<div class="stat-strip" id="stat-strip" style="display:none">
+  <div class="stat-chip">
+    <div class="stat-chip-label">Portfolio β</div>
+    <div class="stat-chip-val" id="s-beta">–</div>
+    <div class="stat-chip-sub" id="s-beta-sub">vs S&amp;P 1.0</div>
+  </div>
+  <div class="stat-chip">
+    <div class="stat-chip-label">Annual Dividends</div>
+    <div class="stat-chip-val" id="s-div">–</div>
+    <div class="stat-chip-sub" id="s-div-sub">–</div>
+  </div>
+  <div class="stat-chip">
+    <div class="stat-chip-label">Portfolio Fwd P/E</div>
+    <div class="stat-chip-val" id="s-pe">–</div>
+    <div class="stat-chip-sub" id="s-pe-sub">–</div>
+  </div>
+  <div class="stat-chip">
+    <div class="stat-chip-label">S&amp;P 500 Fwd P/E</div>
+    <div class="stat-chip-val" id="s-mpe">–</div>
+    <div class="stat-chip-sub">Market benchmark</div>
+  </div>
+</div>
+
+<!-- Earnings Calendar -->
+<div class="cal-section">
+  <div class="cal-label">Earnings Calendar</div>
+  <div class="cal-strip" id="cal-strip">
+    <div style="color:var(--sub);font-size:12px;padding:8px 0">Loading…</div>
+  </div>
+</div>
+
 <!-- Middle Row -->
 <div class="mid-grid">
 
@@ -279,6 +352,24 @@ body::before{
     </div>
     <div class="rp-panel" id="rp-upgrades">
       <div style="color:var(--sub);text-align:center;padding:16px">Loading…</div>
+    </div>
+  </div>
+</div>
+
+<!-- Analytics -->
+<div class="analytics-grid">
+  <div class="donut-card">
+    <div class="sc-title" style="margin-bottom:16px">Position Allocation</div>
+    <div class="donut-inner">
+      <div class="donut-canvas-wrap"><canvas id="alloc-chart"></canvas></div>
+      <div class="donut-legend" id="alloc-legend"></div>
+    </div>
+  </div>
+  <div class="donut-card">
+    <div class="sc-title" style="margin-bottom:16px">Sector Breakdown</div>
+    <div class="donut-inner">
+      <div class="donut-canvas-wrap"><canvas id="sector-chart"></canvas></div>
+      <div class="donut-legend" id="sector-legend"></div>
     </div>
   </div>
 </div>
@@ -344,16 +435,55 @@ function logoEl(sym, name){
 }
 
 // ── Holdings ───────────────────────────────────────────────────────────────
-let allH = [];
-let hFilter = 'all';
+let allH = [], hFilter = 'all';
+let _holdingsCache = null, _epsCache = null;
+
+function _updatePortfolioStats(){
+  if(!_holdingsCache || !_epsCache) return;
+  const investments = _holdingsCache.filter(h=>h.type!=='cash');
+  const tv = investments.reduce((s,h)=>s+(h.market_value||0),0);
+  if(!tv) return;
+
+  // Weighted beta
+  const beta = investments.reduce((s,h)=>s+(h.market_value||0)/tv*(h.beta||0),0);
+  $('s-beta').textContent = beta.toFixed(2);
+  $('s-beta-sub').textContent = beta>=1?'Higher vol than market':'Lower vol than market';
+  $('s-beta-sub').className = 'stat-chip-sub '+(beta>=1.2?'r':beta<=0.8?'g':'');
+
+  // Annual dividends
+  const annDiv = investments.reduce((s,h)=>s+(h.dividend_rate||0)*h.shares,0);
+  $('s-div').textContent = money(annDiv);
+  $('s-div-sub').textContent = (annDiv/tv*100).toFixed(2)+'% portfolio yield';
+
+  // Market-value weighted forward P/E vs S&P
+  const epsMap = {};
+  _epsCache.holdings.forEach(e=>{ if(!e.error) epsMap[e.symbol]=e; });
+  let peN=0,peD=0;
+  investments.forEach(h=>{
+    const e=epsMap[h.symbol];
+    if(e&&e.forward_pe){ peN+=e.forward_pe*(h.market_value||0); peD+=(h.market_value||0); }
+  });
+  if(peD){
+    const pe=peN/peD;
+    $('s-pe').textContent=pe.toFixed(1)+'x';
+    const mktFwd=_epsCache.market_pe?.forward;
+    if(mktFwd){
+      const diff=pe-mktFwd;
+      $('s-pe-sub').textContent=(diff>0?'Premium +':'Discount ')+Math.abs(diff).toFixed(1)+'x vs S&P';
+      $('s-pe-sub').className='stat-chip-sub '+(diff>0?'r':'g');
+      $('s-mpe').textContent=mktFwd.toFixed(1)+'x';
+    }
+  }
+  $('stat-strip').style.display='flex';
+}
 
 async function loadHoldings(){
   const data = await fetch('/api/holdings').then(r=>r.json());
   allH = data;
+  _holdingsCache = data;
   data.forEach(h=>{ if(h.logo_url) logoMap[h.symbol]=h.logo_url; });
 
   const investments = data.filter(h=>h.type!=='cash');
-  const cash        = data.filter(h=>h.type==='cash');
   const tv  = investments.reduce((s,h)=>s+(h.market_value||0),0);
   const tc  = investments.reduce((s,h)=>s+(h.cost||0),0);
   const tg  = tv-tc; const tgp=tc?tg/tc*100:0;
@@ -376,6 +506,8 @@ async function loadHoldings(){
 
   $('last-upd').textContent='Updated '+new Date().toLocaleTimeString();
   renderHList(data, tv);
+  loadAnalytics(data);
+  _updatePortfolioStats();
 }
 
 function renderHList(data, tv){
@@ -385,9 +517,14 @@ function renderHList(data, tv){
   const filtered = hFilter==='all'?sorted:sorted.filter(h=>h.type===hFilter);
 
   function hRow(h, totalVal){
-    const alloc = totalVal>0?h.market_value/totalVal*100:0;
     const sharesStr = h.shares%1===0?h.shares.toFixed(0):h.shares.toFixed(3);
-    const color = tickerColor(h.symbol);
+    const w52pct = (h.week52_high&&h.week52_low&&h.price>0)
+      ? Math.min(100,Math.max(0,(h.price-h.week52_low)/(h.week52_high-h.week52_low)*100))
+      : null;
+    const w52html = w52pct!=null
+      ? `<div class="week52-bar" title="52W $${h.week52_low?.toFixed(0)}–$${h.week52_high?.toFixed(0)}">
+           <div class="week52-fill" style="width:${w52pct.toFixed(1)}%"></div></div>`
+      : '';
     return `<div class="h-row">
       ${logoEl(h.symbol, h.name)}
       <div class="h-name">
@@ -399,8 +536,9 @@ function renderHList(data, tv){
         <div class="h-stat-val">${sharesStr}</div>
       </div>
       <div class="h-stat">
-        <div class="h-stat-label">Price</div>
+        <div class="h-stat-label">Price · 52W</div>
         <div class="h-stat-val">${h.price?money(h.price):'–'}</div>
+        ${w52html}
       </div>
       <div class="h-stat">
         <div class="h-stat-label">Change</div>
@@ -514,14 +652,20 @@ document.querySelectorAll('.rp-tab').forEach(b=>b.addEventListener('click',()=>{
 }));
 
 // ── EPS ────────────────────────────────────────────────────────────────────
+let peChart = null;
+
 async function loadEPS(){
-  const data=await fetch('/api/eps').then(r=>r.json());
+  const resp=await fetch('/api/eps').then(r=>r.json());
+  const data=Array.isArray(resp)?resp:(resp.holdings||[]);
+  const mpe=Array.isArray(resp)?null:(resp.market_pe||null);
+  _epsCache={holdings:data,market_pe:mpe};
   data.forEach(d=>{ if(d.logo_url) logoMap[d.symbol]=d.logo_url; });
+
   const fe=n=>n==null?'–':(n<0?`<span class="r">($${Math.abs(n).toFixed(2)})</span>`:`<span class="g">$${n.toFixed(2)}</span>`);
   const fp=n=>n==null?'–':n.toFixed(1)+'x';
   const fg=n=>n==null?'–':`<span class="${cc(n)}">${sign(n*100)}${(n*100).toFixed(1)}%</span>`;
 
-  $('rp-eps').innerHTML=`<div style="overflow-x:auto"><table class="mini-table">
+  const tableHTML=`<div style="overflow-x:auto"><table class="mini-table">
     <thead><tr>
       <th>Symbol</th><th>Price</th><th>Trail EPS</th><th>Fwd EPS</th><th>P/E</th><th>Fwd P/E</th><th>Rev Gr</th>
     </tr></thead>
@@ -540,6 +684,63 @@ async function loadEPS(){
       </tr>`;
     }).join('')}</tbody>
   </table></div>`;
+
+  const chartHTML=mpe
+    ?`<div class="pe-chart-title">Forward P/E vs S&amp;P 500 (${mpe.forward?.toFixed(1)||'–'}x) — green = below market, red = premium</div>
+      <div class="pe-chart-wrap"><canvas id="pe-chart"></canvas></div>`
+    :'';
+
+  $('rp-eps').innerHTML=tableHTML+chartHTML;
+  if(mpe) setTimeout(()=>_renderPEChart(data,mpe),20);
+  _updatePortfolioStats();
+}
+
+function _renderPEChart(data,mpe){
+  const valid=data.filter(d=>!d.error&&d.forward_pe!=null);
+  if(!valid.length) return;
+  const ctx=document.getElementById('pe-chart')?.getContext('2d');
+  if(!ctx) return;
+  if(peChart){peChart.destroy();peChart=null;}
+  const mktFwd=mpe.forward||21;
+  const colors=valid.map(d=>d.forward_pe>mktFwd?'#f43f5e':'#22c55e');
+  peChart=new Chart(ctx,{
+    type:'bar',
+    data:{
+      labels:valid.map(d=>d.symbol),
+      datasets:[{
+        data:valid.map(d=>d.forward_pe),
+        backgroundColor:colors.map(c=>c+'55'),
+        borderColor:colors,borderWidth:1.5,borderRadius:6,
+      }]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{
+        legend:{display:false},
+        tooltip:{
+          backgroundColor:'#161c2c',borderColor:'rgba(255,255,255,.08)',borderWidth:1,bodyColor:'#e2e8f0',
+          callbacks:{label:c=>` ${c.parsed.y.toFixed(1)}x fwd P/E  |  S&P: ${mktFwd.toFixed(1)}x`}
+        }
+      },
+      scales:{
+        x:{grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'#4b5563',font:{size:11}}},
+        y:{grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'#4b5563',font:{size:11},callback:v=>v+'x'}},
+      }
+    },
+    plugins:[{
+      id:'mktLine',
+      afterDraw(chart){
+        const{ctx:c,chartArea:{left,right},scales:{y}}=chart;
+        const yp=y.getPixelForValue(mktFwd);
+        c.save();
+        c.strokeStyle='#60a5fa';c.lineWidth=1.5;c.setLineDash([4,4]);
+        c.beginPath();c.moveTo(left,yp);c.lineTo(right,yp);c.stroke();
+        c.setLineDash([]);c.fillStyle='#60a5fa';c.font='10px -apple-system,sans-serif';
+        c.fillText('S&P '+mktFwd.toFixed(1)+'x',left+4,yp-4);
+        c.restore();
+      }
+    }]
+  });
 }
 
 // ── Research ───────────────────────────────────────────────────────────────
@@ -599,6 +800,97 @@ async function loadResearch(){
   </table></div>`:`<div style="color:var(--sub);text-align:center;padding:16px">No recent ratings changes</div>`;
 }
 
+// ── Earnings Calendar ──────────────────────────────────────────────────────
+async function loadCalendar(){
+  const data=await fetch('/api/calendar').then(r=>r.json());
+  if(!data.length){
+    $('cal-strip').innerHTML='<div style="color:var(--sub);font-size:12px;padding:8px 0">No upcoming earnings data</div>';
+    return;
+  }
+  const today=new Date();
+  $('cal-strip').innerHTML=data.map(item=>{
+    const d=new Date(item.date+'T12:00:00');
+    const days=Math.round((d-today)/86400000);
+    let cls='upcoming',txt=`${days}d`;
+    if(days<0){cls='past';txt='Reported';}
+    else if(days<=21){cls='soon';txt=`${days}d`;}
+    return`<div class="cal-item">
+      <div style="display:flex;align-items:center;gap:6px">
+        ${logoEl(item.symbol,item.symbol)}
+        <span class="cal-sym">${item.symbol}</span>
+      </div>
+      <div class="cal-date">${d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</div>
+      <div class="cal-badge ${cls}">${txt}</div>
+    </div>`;
+  }).join('');
+}
+
+// ── Analytics (Donuts) ─────────────────────────────────────────────────────
+let allocChart=null, sectorChart=null;
+const SECTOR_COLORS={
+  'Technology':'#3b82f6','Communication Services':'#8b5cf6',
+  'Consumer Cyclical':'#f97316','Financial Services':'#22c55e',
+  'Healthcare':'#ec4899','Energy':'#f59e0b','Basic Materials':'#14b8a6',
+  'ETF':'#06b6d4','Mutual Fund':'#a78bfa','Other':'#64748b',
+};
+
+function _renderDonut(canvasId,legendId,labels,values,colors,chartRef){
+  const ctx=document.getElementById(canvasId)?.getContext('2d');
+  if(!ctx) return null;
+  if(chartRef){chartRef.destroy();}
+  const total=values.reduce((s,v)=>s+v,0);
+  const chart=new Chart(ctx,{
+    type:'doughnut',
+    data:{
+      labels,
+      datasets:[{data:values,backgroundColor:colors.map(c=>c+'cc'),borderColor:colors,borderWidth:1.5,hoverOffset:4}]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:true,cutout:'65%',
+      plugins:{
+        legend:{display:false},
+        tooltip:{
+          backgroundColor:'#161c2c',borderColor:'rgba(255,255,255,.08)',borderWidth:1,bodyColor:'#e2e8f0',
+          callbacks:{label:c=>` ${c.label}: ${(c.raw/total*100).toFixed(1)}% · ${money(c.raw)}`}
+        }
+      }
+    }
+  });
+  const leg=document.getElementById(legendId);
+  if(leg){
+    const sorted=[...labels.map((l,i)=>({l,v:values[i],c:colors[i]}))].sort((a,b)=>b.v-a.v);
+    leg.innerHTML=sorted.slice(0,8).map(({l,v,c})=>
+      `<div class="legend-row">
+        <div class="legend-dot" style="background:${c}"></div>
+        <div class="legend-lbl">${l}</div>
+        <div class="legend-pct">${(v/total*100).toFixed(1)}%</div>
+      </div>`
+    ).join('');
+  }
+  return chart;
+}
+
+function loadAnalytics(holdings){
+  const inv=holdings.filter(h=>h.type!=='cash'&&(h.market_value||0)>0);
+  const sorted=[...inv].sort((a,b)=>b.market_value-a.market_value);
+
+  // Allocation donut
+  allocChart=_renderDonut('alloc-chart','alloc-legend',
+    sorted.map(h=>h.symbol), sorted.map(h=>h.market_value),
+    sorted.map(h=>tickerColor(h.symbol)), allocChart);
+
+  // Sector donut — group holdings by sector
+  const sectors={};
+  inv.forEach(h=>{
+    const s=h.sector||(h.type==='etf'?'ETF':h.type==='mutual_fund'?'Mutual Fund':'Other');
+    sectors[s]=(sectors[s]||0)+(h.market_value||0);
+  });
+  const sLabels=Object.keys(sectors);
+  sectorChart=_renderDonut('sector-chart','sector-legend',
+    sLabels, sLabels.map(l=>sectors[l]),
+    sLabels.map(l=>SECTOR_COLORS[l]||'#64748b'), sectorChart);
+}
+
 // ── News ────────────────────────────────────────────────────────────────────
 async function loadNews(){
   const data=await fetch('/api/news').then(r=>r.json());
@@ -621,6 +913,7 @@ loadChart();
 loadEPS();
 loadResearch();
 loadNews();
+loadCalendar();
 setInterval(loadHoldings, 120_000);
 setInterval(loadNews, 900_000);
 </script>

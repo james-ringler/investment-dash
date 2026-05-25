@@ -118,7 +118,12 @@ def _fetch_one_holding(h):
                 "gain": round(gain, 2), "gain_pct": round(gain_pct, 2),
                 "today_change": round(chg * h["shares"], 2),
                 "today_change_pct": round(chg_pct, 2),
-                "logo_url": _logo_url(h["symbol"], info)}
+                "logo_url": _logo_url(h["symbol"], info),
+                "sector": info.get("sector", ""),
+                "beta": round(float(info.get("beta") or 0), 2),
+                "week52_high": info.get("fiftyTwoWeekHigh"),
+                "week52_low": info.get("fiftyTwoWeekLow"),
+                "dividend_rate": round(float(info.get("dividendRate") or 0), 4)}
     except Exception as e:
         return {**h, "price": 0, "market_value": 0, "gain": -h["cost"],
                 "gain_pct": -100, "today_change": 0, "today_change_pct": 0, "error": str(e)}
@@ -213,8 +218,14 @@ def api_eps():
             return {"symbol": sym, "name": sym, "error": True}
 
     def fetch():
-        with ThreadPoolExecutor(max_workers=6) as ex:
-            return list(ex.map(_fetch_eps, EPS_SYMBOLS))
+        all_syms = EPS_SYMBOLS + ["SPY"]
+        with ThreadPoolExecutor(max_workers=7) as ex:
+            all_results = list(ex.map(_fetch_eps, all_syms))
+        spy = all_results[-1]
+        return {
+            "holdings": all_results[:-1],
+            "market_pe": {"trailing": spy.get("trailing_pe"), "forward": spy.get("forward_pe")},
+        }
     return jsonify(_get("eps", fetch, ttl=3600))
 
 @app.route("/api/news")
@@ -234,6 +245,34 @@ def api_news():
         all_news.sort(key=lambda x: x.get("time", ""), reverse=True)
         return all_news[:60]
     return jsonify(_get("news", fetch, ttl=1800))
+
+@app.route("/api/calendar")
+def api_calendar():
+    def _fetch_cal(sym):
+        try:
+            cal = yf.Ticker(sym).calendar
+            if not cal:
+                return None
+            if isinstance(cal, dict):
+                dates = cal.get("Earnings Date", [])
+                if not dates:
+                    return None
+                d = dates[0] if isinstance(dates, (list, tuple)) else dates
+                if hasattr(d, "strftime"):
+                    return {"symbol": sym, "date": d.strftime("%Y-%m-%d")}
+                return {"symbol": sym, "date": str(d)[:10]}
+        except Exception:
+            pass
+        return None
+
+    def fetch():
+        with ThreadPoolExecutor(max_workers=6) as ex:
+            results = list(ex.map(_fetch_cal, EPS_SYMBOLS))
+        items = [r for r in results if r]
+        items.sort(key=lambda x: x["date"])
+        return items
+
+    return jsonify(_get("calendar", fetch, ttl=3600))
 
 @app.route("/api/research")
 def api_research():
