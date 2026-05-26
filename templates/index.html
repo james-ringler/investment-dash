@@ -480,20 +480,15 @@ function _updatePortfolioStats(){
   $('stat-strip').style.display='flex';
 }
 
-async function loadHoldings(){
-  const data = await fetch('/api/holdings').then(r=>r.json());
+// Shared helper — updates summary cards + holdings table from any data array
+function _applyHoldingsData(data){
   allH = data;
-  _holdingsCache = data;
-  data.forEach(h=>{ if(h.logo_url) logoMap[h.symbol]=h.logo_url; });
-
   const investments = data.filter(h=>h.type!=='cash');
   const tv  = investments.reduce((s,h)=>s+(h.market_value||0),0);
   const tc  = investments.reduce((s,h)=>s+(h.cost||0),0);
   const tg  = tv-tc; const tgp=tc?tg/tc*100:0;
   const td  = investments.reduce((s,h)=>s+(h.today_change||0),0);
   const tdpct = (tv-td)>0?td/(tv-td)*100:0;
-
-  // Summary
   const [whole,dec] = tv.toFixed(2).split('.');
   $('v-main').textContent = parseInt(whole).toLocaleString('en-US')+'.'+dec;
   const vc=$('v-change');
@@ -501,14 +496,27 @@ async function loadHoldings(){
   vc.textContent=(tg>=0?'+':'')+money(tg)+' ('+pct(tgp)+')';
   $('v-cost').textContent = money(tc);
   $('v-costlabel').textContent = 'Total cost basis · '+investments.length+' positions';
-
   const mt=$('m-today'); mt.textContent=(td>=0?'+':'')+money(td); mt.className='metric-val '+cc(td);
   const mtp=$('m-todayp'); mtp.textContent=pct(tdpct); mtp.className='metric-sub '+cc(td);
   const mg=$('m-gain'); mg.textContent=(tg>=0?'+':'')+money(tg); mg.className='metric-val '+cc(tg);
   const mgp=$('m-gainp'); mgp.textContent=pct(tgp); mgp.className='metric-sub '+cc(tg);
-
   $('last-upd').textContent='Updated '+new Date().toLocaleTimeString();
   renderHList(data, tv);
+}
+
+// Phase 1 — fast batch price fetch (one HTTP call via yf.download)
+async function loadPrices(){
+  const data = await fetch('/api/prices').then(r=>r.json());
+  if(data.length) _applyHoldingsData(data);
+}
+
+// Phase 2 — full detail fetch (logos, 52W, beta, sector, dividends)
+async function loadHoldings(){
+  const data = await fetch('/api/holdings').then(r=>r.json());
+  if(!data.length) return;
+  _holdingsCache = data;
+  data.forEach(h=>{ if(h.logo_url) logoMap[h.symbol]=h.logo_url; });
+  _applyHoldingsData(data);
   loadAnalytics(data);
   _updatePortfolioStats();
 }
@@ -911,14 +919,19 @@ async function loadNews(){
 }
 
 // ── Init ────────────────────────────────────────────────────────────────────
+// loadPrices() is fast (1 batch API call) — shows P&L immediately
+// loadHoldings() runs in parallel — adds logos, 52W bars, beta, sector when ready
+loadPrices();
 loadHoldings();
 loadChart();
 loadEPS();
 loadResearch();
 loadNews();
 loadCalendar();
-setInterval(loadHoldings, 120_000);
-setInterval(loadNews, 900_000);
+// Refresh prices every 60s; full holdings every 5min (logos/beta don't change intraday)
+setInterval(loadPrices,   60_000);
+setInterval(loadHoldings, 300_000);
+setInterval(loadNews,     900_000);
 </script>
 </body>
 </html>

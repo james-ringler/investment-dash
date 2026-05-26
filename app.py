@@ -130,6 +130,54 @@ def _fetch_one_holding(h):
         return {**h, "price": 0, "market_value": 0, "gain": -h["cost"],
                 "gain_pct": -100, "today_change": 0, "today_change_pct": 0, "error": str(e)}
 
+@app.route("/api/prices")
+def api_prices():
+    """Fast batch price fetch — one yf.download() call for all symbols."""
+    def fetch():
+        non_cash = [h for h in HOLDINGS if h["type"] != "cash"]
+        syms = [h["symbol"] for h in non_cash]
+        try:
+            raw = yf.download(syms, period="5d", interval="1d",
+                              auto_adjust=True, progress=False, threads=True)
+            if isinstance(raw.columns, pd.MultiIndex):
+                closes = raw["Close"]
+            else:
+                # single symbol — yf returns flat DataFrame
+                closes = pd.DataFrame({syms[0]: raw["Close"]})
+            closes = closes.ffill().dropna(how="all")
+        except Exception:
+            closes = pd.DataFrame()
+
+        out = []
+        for h in HOLDINGS:
+            if h["type"] == "cash":
+                out.append({**h, "price": 1.0, "market_value": h["cost"],
+                            "gain": 0, "gain_pct": 0,
+                            "today_change": 0, "today_change_pct": 0})
+                continue
+            sym = h["symbol"]
+            try:
+                col   = closes[sym].dropna() if sym in closes.columns else pd.Series(dtype=float)
+                price = float(col.iloc[-1]) if len(col) > 0 else 0
+                prev  = float(col.iloc[-2]) if len(col) > 1 else price
+                mv    = price * h["shares"]
+                gain  = mv - h["cost"]
+                chg   = (price - prev) * h["shares"]
+                chg_p = (price - prev) / prev * 100 if prev else 0
+                out.append({**h,
+                    "price": round(price, 4), "market_value": round(mv, 2),
+                    "gain": round(gain, 2),
+                    "gain_pct": round(gain / h["cost"] * 100 if h["cost"] else 0, 2),
+                    "today_change": round(chg, 2),
+                    "today_change_pct": round(chg_p, 2)})
+            except Exception:
+                out.append({**h, "price": 0, "market_value": 0,
+                            "gain": -h["cost"], "gain_pct": -100,
+                            "today_change": 0, "today_change_pct": 0})
+        return out
+
+    return jsonify(_get("prices", fetch, ttl=60))
+
 @app.route("/api/holdings")
 def api_holdings():
     def fetch():
@@ -139,7 +187,7 @@ def api_holdings():
             for f in as_completed(futures):
                 results[futures[f]] = f.result()
         return results
-    return jsonify(_get("holdings", fetch, ttl=90))
+    return jsonify(_get("holdings", fetch, ttl=300))
 
 @app.route("/api/chart")
 def api_chart():
